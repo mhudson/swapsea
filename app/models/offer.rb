@@ -8,7 +8,7 @@ class Offer < ApplicationRecord
   belongs_to :roster
 
   scope :with_club, ->(club_id) { joins(:request, :user).left_joins(:roster).where(users: { club_id: }).includes(:request, :user, :roster) }
-  scope :with_offered_by, ->(user_id) { joins(:request, :user).left_joins(:roster, roster: :patrol).includes(:request, :user, :roster, request: :user, request: :roster, request: { roster: :patrol }, roster: :patrol).where(user_id:) }
+  scope :with_offered_by, ->(user_id) { joins(:request, :user).left_joins(:roster, roster: :patrol).includes(:request, :user, :roster, request: [:user, :roster, { roster: :patrol }], roster: :patrol).where(user_id:) }
   scope :with_pending_status, -> { left_joins(:roster).where(status: :pending).where('rosters.finish > ? OR rosters.finish IS NULL', DateTime.now) }
   scope :with_accepted_status, -> { joins(:request, :user).left_joins(:roster).where(status: 'accepted') }
 
@@ -55,10 +55,7 @@ class Offer < ApplicationRecord
   def accept
     # Check valid status
     case status
-    when 'accepted'
-      # Already accepted
-      return true
-    when 'cancelled', 'declined', 'unsuccessful', 'withdrawn'
+    when 'cancelled', 'declined', 'unsuccessful', 'withdrawn', 'accepted'
       message = "Error: Offer '#{id}' cannot be accepted from status '#{status}'."
       Rails.logger.warn message
       EventLog.create!(subject: 'Warning', desc: message)

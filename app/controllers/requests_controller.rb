@@ -16,7 +16,7 @@ class RequestsController < ApplicationController
   def show
     @offer = Offer.new
     @offers = @request.offers.with_pending_status.left_joins(roster: :patrol).includes(:user, :roster, roster: :patrol).order(:start)
-    @rosters_available = selected_user.offers_available_for(@request).sort_by(&:start)
+    @rosters_available = selected_user.offers_available_for(@request)
     @awards = @request.user.awards.map(&:award_name)
   end
 
@@ -87,10 +87,10 @@ class RequestsController < ApplicationController
   # DELETE /requests/1
   # DELETE /requests/1.json
   def destroy
-    if @request.cancel
-      @request.create_activity :close, owner: selected_user
-      redirect_to my_requests_swaps_path, notice: 'Your Swap Request was cancelled.'
-    end
+    return unless @request.cancel
+
+    @request.create_activity :close, owner: selected_user
+    redirect_to my_requests_swaps_path, notice: 'Your Swap Request was cancelled.'
   end
 
   private
